@@ -115,11 +115,13 @@ for i in range(0,len(processed_Hindi_tokens)):
         flag = 0
         Str1 = (processed_Hindi_tokens[i][j])
         max_ratio = 60
-        max_ratio_P = 75
+        max_ratio_P = 75   #needs to be adjusted
+        if (Str1 in EH_dict): #incomplete check whether the values exists in english dictionary or not.
+            continue;
         for l in range(0,len(P_dict)):
             Str2 = P_dict[l][0]
             Ratiostr1 = fuzz.ratio(Str1,Str2)
-            if (Ratiostr1 > max_ratio_P):
+            if (Ratiostr1 >= max_ratio_P):
                 print(Ratiostr1)
                 max_ratio_P = Ratiostr1
                 processed_Hindi_tokens[i][j] = P_dict[l][1]
@@ -143,4 +145,27 @@ print((hindi_comments[12]))
 
 
 
+#------------------Translation of hindi text back to english-------
 
+Hindi_dict = "B:\CS 695\Assignment3\Hindi_English_Dict.csv"
+H_dict = pd.read_csv(Hindi_dict,names = ['Hindi','English'],encoding='UTF-8')
+
+H_dict['Hindi'] = H_dict['Hindi'].str.strip()
+H_dict['English'] = H_dict['English'].str.strip()
+H_hindi = np.asarray(H_dict['Hindi'])
+H_english = np.asarray(H_dict['English'])
+
+HE_dict = dict(zip(H_hindi,H_english))
+
+EH_dict = {v:k for k, v in HE_dict.items()}
+
+for i in range(0,len(processed_Hindi_tokens)):
+    print(i)
+    for j in range (0,len(processed_Hindi_tokens[i])):
+        Str = processed_Hindi_tokens[i][j]
+        if(Str in HE_dict):
+            processed_Hindi_tokens[i][j] = HE_dict[Str]
+            
+            
+STR =  processed_Hindi_tokens[1]
+print(HE_dict[1])
