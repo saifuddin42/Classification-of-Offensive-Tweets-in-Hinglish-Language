@@ -13,7 +13,7 @@ from nltk.corpus import stopwords
 import fuzzywuzzy
 from fuzzywuzzy import fuzz
 from  nltk import word_tokenize
-
+import torch.optim as optim
 
 def isEnglish(s):
     try:
@@ -37,7 +37,7 @@ def remove_emoji(string):
 
 
 
-f = "B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language\english/agr_en_train.csv"
+f = "english/agr_en_train.csv"
 
 # preprocessing english tweets.
 #ingesting english csv file
@@ -69,7 +69,7 @@ for comment in comments:
 #-----------------For hinglish dataset
 
 
-Hindi_text  = "B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language\hindi/agr_hi_dev.csv"
+Hindi_text  = "hindi/agr_hi_dev.csv"
 df1 = pd.read_csv(Hindi_text,names = ['source','comment','annotation'],encoding='UTF-8')
 df1['comment'] = df1.comment.str.strip()   # removing spaces
 hindi_comments = np.asarray(df1['comment'])    # dividing the dataframe into comments and tags and converting to array
@@ -100,7 +100,7 @@ t_dict['Hindi'] = t_dict['Hindi'].str.strip()
 t_dict = np.asarray(t_dict)
 
 #--------------profanity dictionary
-profanity_dict = "B:\CS 695\Assignment3/ProfanityText.txt"
+profanity_dict = "ProfanityText.txt"
 P_dict = pd.read_csv(profanity_dict,names = ['Hinglish','English'],encoding='UTF-8',sep='\t')
 P_dict['Hinglish'] = P_dict['Hinglish'].str.strip()
 P_dict['English'] = P_dict['English'].str.strip()
@@ -151,10 +151,10 @@ processed_Hindi_tokens[1]
 
 #------------------Translation of hindi text back to english-------
 
-Hindi_dict = "B:\CS 695\Assignment3\Hindi_English_Dict.csv"
+Hindi_dict = "Hindi_English_Dict.csv"
 H_dict = pd.read_csv(Hindi_dict,names = ['Hindi','English'],encoding='UTF-8')
 
-HE_dict_F = "B:\CS 695\Assignment3\HE_dictionary_functions.csv"
+HE_dict_F = "HE_dictionary_functions.csv"
 H_dict_F = pd.read_csv(HE_dict_F,names = ['Hindi','English'],encoding='UTF-8')
 H_dict_F['Hindi'] = H_dict_F['Hindi'].str.strip()
 H_dict_F['English'] = H_dict_F['English'].str.strip()
@@ -197,13 +197,28 @@ import torch.nn.functional as F
 class MIMCT(nn.Module):   
     def __init__(self,input_channel,output_channel,embedding_dim,kernel_size,feature_linear):
         super(MIMCT, self).__init__()
-        self.CNN_Layers = nn.Sequential( nn.Conv1d(input_channel, output_channel,kernel_size[0], stride=1),nn.Conv1d(input_channel, output_channel, kernel_size[1], stride=1),nn.Conv1d(input_channel, output_channel, kernel_size[2], stride=1),nn.Flatten(),nn.Dropout(p=0.25),nn.Linear(feature_linear, 3),nn.Softmax())
+        self.CNN_Layers = nn.Sequential( 
+            nn.Conv1d(input_channel, output_channel,kernel_size[0], stride=1),
+            nn.Conv1d(input_channel, output_channel, kernel_size[1], stride=1),
+            nn.Conv1d(input_channel, output_channel, kernel_size[2], stride=1),
+            nn.Flatten(),nn.Dropout(p=0.25),
+            nn.Linear(feature_linear, 3),
+            nn.Softmax()
+            )
         #create a sequential for LSTM.
+        self.LSTM_Layers = nn.Sequential(
+            nn.LSTM(input_channel, hidden_dim, output_channel,dropout),
+            nn.Linear(input_channel, hidden_dim, output_channel),
+            nn.Linear(input_channel, 3),
+            nn.Softmax()
+        )
     def forward(self,x):
         x = self.CNN_Layers(x)
         y = self.LSTM_Layers(x)
         #concat the outputs the compile layer with categorical cross-entropy the loss function, 
         return x
+
+relu = nn.ReLU()
 
 #try with output channel 1 as well.
 batch_size = 1
@@ -211,12 +226,20 @@ input_channel = 16
 embedding_dim = 200
 output_channel = 16
 kernel_size = [20,15,10]
-embedding_dim = 200
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
 Feature_layer3 = Feature_layer2 - kernel_size[2] + 1
 feature_linear = Feature_layer3 * input_channel
+
+#Parameters for LSTM
+hidden_dim = 64
+dropout = 0.25, 
+#recurrent_dropout = 0.3
+
 model = MIMCT(input_channel,output_channel,embedding_dim,kernel_size,feature_linear)
+
+#Adam Optimizer
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 output = model(input1)
 #create the loss cretirion and training loops
