@@ -71,17 +71,10 @@ for comment in comments:
 
 Hindi_text  = "B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language\hindi/agr_hi_dev.csv"
 df1 = pd.read_csv(Hindi_text,names = ['source','comment','annotation'],encoding='UTF-8')
-<<<<<<< HEAD
-df1['comment'] = df.comment.str.strip()   # removing spaces
-hindi_comments = np.asarray(df1['comment'])    # dividing the dataframe into comments and tags and converting to array
-hindi_tags = np.asarray(df1['annotation'])
-print((hindi_comments[11])) 
-=======
 df1['comment'] = df1.comment.str.strip()   # removing spaces
 hindi_comments = np.asarray(df1['comment'])    # dividing the dataframe into comments and tags and converting to array
 hindi_tags = np.asarray(df1['annotation'])
 print((hindi_comments[1])) 
->>>>>>> master
 processed_Hindi_tokens = []
 for comment in hindi_comments:
 #    comment = "Also see ....hw ur RSS activist caught in Burkha .... throwing beef in d holy temples...https://www.google.co.in/amp/www.india.com/news/india/burkha-clad-rss-activist-caught-throwing-beef-at-temple-pictures-go-viral-on-facebook-593154/amp/,NAGfacebook_corpus_msr_403402,On the death of 2 jawans in LOC CROSS FIRING"
@@ -92,12 +85,6 @@ for comment in hindi_comments:
     if (isEnglish(Emoji_removal) == True):
         Emoji_removal = re.sub(r'[^\w\s]','',Emoji_removal)# removal of punctuation and tokenizing
     processed_Hindi_tokens.append(word_tokenize(Emoji_removal))
-<<<<<<< HEAD
-processed_Hindi_tokens[6]
-processed_Hindi_tokens[11]
-processed_Hindi_tokens[6]
-processed_Hindi_tokens[11]
-=======
 processed_Hindi_tokens[0]
 processed_Hindi_tokens[11]
 processed_Hindi_tokens[6]
@@ -106,43 +93,11 @@ processed_Hindi_tokens[11]
 
 
 #-----------Transliteration and translation
->>>>>>> master
 transliteration_dict = "B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language/transliterations.hi-en.csv"
 t_dict = pd.read_csv(transliteration_dict,names = ['Hinglish','Hindi'],encoding='UTF-8',sep='\t')
 t_dict['Hinglish'] = t_dict['Hinglish'].str.strip()
 t_dict['Hindi'] = t_dict['Hindi'].str.strip()
 t_dict = np.asarray(t_dict)
-<<<<<<< HEAD
-print(t_dict)
-processed_Hindi_tokens[11]
-for i in range(0,len(processed_Hindi_tokens)):
-    for j in range (0,len(processed_Hindi_tokens[i])):
-        Str1 = (processed_Hindi_tokens[i][j])
-        max_ratio = 50
-        print(processed_Hindi_tokens[i][j])
-        for k in range(0,len(t_dict)):
-            Str2 = t_dict[k][0]
-            Ratiostr1 = fuzz.ratio(Str1,Str2)
-            if (Ratiostr1 > max_ratio):
-                max_ratio = Ratiostr1
-                processed_Hindi_tokens[i][j] = t_dict[k][1]
-processed_Hindi_tokens[11]
-print((hindi_comments[11])) 
-processed_Hindi_tokens[12]
-(processed_tokens[12])
-print((hindi_comments[12])) 
-
-
-
-
-def isEnglish(s):
-    try:
-        s.encode(encoding='utf-8').decode('ascii')
-    except UnicodeDecodeError:
-        return False
-    else:
-        return True
-=======
 
 #--------------profanity dictionary
 profanity_dict = "B:\CS 695\Assignment3/ProfanityText.txt"
@@ -384,4 +339,3 @@ test_input = input1
 output = m(test_input)
 nn.flatten
 '''
->>>>>>> master
