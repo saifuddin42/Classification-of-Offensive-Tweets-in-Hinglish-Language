@@ -241,13 +241,13 @@ model = MIMCT(input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,
 
 #Adam Optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.01)
-input1 = torch.randn(batch_size,input_channel,embedding_dim)
+input1 = torch.randn(input_channel,embedding_dim)
 output = model(input1)
 #create the loss cretirion and training loops
 
 
-
-
+input1.size()
+input1.view(len(sentence), 1, -1)
 
 
 
