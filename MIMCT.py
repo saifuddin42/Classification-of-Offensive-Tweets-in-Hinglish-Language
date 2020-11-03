@@ -205,18 +205,24 @@ class MIMCT(nn.Module):
             nn.Linear(feature_linear, 3),
             nn.Softmax()
             )
-        #create a sequential for LSTM.
-        self.LSTM_Layers = nn.Sequential(
-            nn.LSTM(embedding_dim, hidden_dim, output_channel,dropout),
-            nn.Linear(hidden_dim, 3),
-            nn.Dropout(p=0.20),
-            nn.Softmax()
-        )
+        
+        
+        #create LSTM.
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.hidden2tag = nn.Linear(hidden_dim,3)
+        self.dropout = nn.Dropout(p=0.20)
+        self.softmax = nn.Softmax()
+        
     def forward(self,x):
-        x = self.CNN_Layers(x)
+        cnn_output = self.CNN_Layers(x)
       #  y = self.LSTM_Layers(x)
+        lstm_out, _ = self.lstm(x)
+        lstm_out= self.dropout(lstm_out)
+        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
+        lstm_output = F.log_softmax(tag_space, dim=1)
         #concat the outputs the compile layer with categorical cross-entropy the loss function,
-       # print(y)
+        print(lstm_output)
+        print(cnn_output)
         return x
 
 relu = nn.ReLU()
@@ -241,13 +247,13 @@ model = MIMCT(input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,
 
 #Adam Optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.01)
-input1 = torch.randn(input_channel,embedding_dim)
+input1 = torch.randn(batch_size,input_channel,embedding_dim)
 output = model(input1)
 #create the loss cretirion and training loops
 
 
 input1.size()
-input1.view(len(sentence), 1, -1)
+input1 = input1.view(16, 1, -1)
 
 
 
