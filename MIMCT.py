@@ -93,7 +93,7 @@ processed_Hindi_tokens[11]
 
 
 #-----------Transliteration and translation
-transliteration_dict = "B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language/transliterations.hi-en.csv"
+transliteration_dict = "transliterations.hi-en.csv"
 t_dict = pd.read_csv(transliteration_dict,names = ['Hinglish','Hindi'],encoding='UTF-8',sep='\t')
 t_dict['Hinglish'] = t_dict['Hinglish'].str.strip()
 t_dict['Hindi'] = t_dict['Hindi'].str.strip()
