@@ -195,7 +195,7 @@ import torch.nn.functional as F
 
 
 class MIMCT(nn.Module):   
-    def __init__(self,input_channel,output_channel,embedding_dim,kernel_size,feature_linear):
+    def __init__(self,input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
         super(MIMCT, self).__init__()
         self.CNN_Layers = nn.Sequential( 
             nn.Conv1d(input_channel, output_channel,kernel_size[0], stride=1),
@@ -207,15 +207,16 @@ class MIMCT(nn.Module):
             )
         #create a sequential for LSTM.
         self.LSTM_Layers = nn.Sequential(
-            nn.LSTM(input_channel, hidden_dim, output_channel,dropout),
-            nn.Linear(input_channel, hidden_dim, output_channel),
-            nn.Linear(input_channel, 3),
+            nn.LSTM(embedding_dim, hidden_dim, output_channel,dropout),
+            nn.Linear(hidden_dim, 3),
+            nn.Dropout(p=0.20),
             nn.Softmax()
         )
     def forward(self,x):
         x = self.CNN_Layers(x)
-        y = self.LSTM_Layers(x)
-        #concat the outputs the compile layer with categorical cross-entropy the loss function, 
+      #  y = self.LSTM_Layers(x)
+        #concat the outputs the compile layer with categorical cross-entropy the loss function,
+       # print(y)
         return x
 
 relu = nn.ReLU()
@@ -232,15 +233,15 @@ Feature_layer3 = Feature_layer2 - kernel_size[2] + 1
 feature_linear = Feature_layer3 * input_channel
 
 #Parameters for LSTM
-hidden_dim = 64
+hidden_dim = 128
 dropout = 0.25, 
 #recurrent_dropout = 0.3
 
-model = MIMCT(input_channel,output_channel,embedding_dim,kernel_size,feature_linear)
+model = MIMCT(input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
 
 #Adam Optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.01)
-
+input1 = torch.randn(batch_size,input_channel,embedding_dim)
 output = model(input1)
 #create the loss cretirion and training loops
 
