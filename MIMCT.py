@@ -129,7 +129,7 @@ for i in range(0,len(processed_Hindi_tokens)):
                 print(flag)
                 break;
         for p in EH_dict_F:
-            RAtionstr1 = fuzz.ratio(Str1,str(p))
+            Ratiostr1 = fuzz.ratio(Str1,str(p))
             if(Ratiostr1 >= 98):
                 flag = 1
                 break;
@@ -213,16 +213,26 @@ class MIMCT(nn.Module):
         self.dropout = nn.Dropout(p=0.20)
         self.softmax = nn.Softmax()
         
+        self.maxpool = nn.MaxPool1d(kernel_size=3, stride=2)
+        self.linear = nn.Linear(input_channel+1,3)
     def forward(self,x):
         cnn_output = self.CNN_Layers(x)
       #  y = self.LSTM_Layers(x)
         lstm_out, _ = self.lstm(x)
         lstm_out= self.dropout(lstm_out)
-        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
+        tag_space = self.hidden2tag(lstm_out.view(lstm_out.size(1), -1))
         lstm_output = F.log_softmax(tag_space, dim=1)
         #concat the outputs the compile layer with categorical cross-entropy the loss function,
-        print(lstm_output)
-        print(cnn_output)
+        lstm_output = lstm_output.view(lstm_output.size(0),-1)
+        cnn_output = cnn_output.view(cnn_output.size(0),-1)
+        
+        X = torch.cat((lstm_output,cnn_output))
+        X = X.view(1,X.size(0),X.size(1))
+        X = self.maxpool(X)
+        
+        X = self.linear(X.view(X.size(2), -1))
+        X = self.softmax(X)
+        print(X)
         return x
 
 relu = nn.ReLU()
@@ -253,7 +263,7 @@ output = model(input1)
 
 
 input1.size()
-input1 = input1.view(16, 1, -1)
+input1 = input1.view(1,input1.size(0),input1.size(1))
 
 
 
