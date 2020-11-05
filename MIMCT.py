@@ -14,6 +14,7 @@ import fuzzywuzzy
 from fuzzywuzzy import fuzz
 from  nltk import word_tokenize
 import torch.optim as optim
+import utils
 
 def isEnglish(s):
     try:
@@ -184,13 +185,34 @@ for i in range(0,len(processed_Hindi_tokens)):
             
             
 #------------------------------MODEL
-            
-            
+print(processed_tokens[0])
+print(tags)            
             
 import torch
 from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
+
+def prepare_sequence(seq, to_ix):
+	idxs = [to_ix[w] for w in seq]
+	return torch.tensor(idxs, dtype=torch.long)
+
+training_data = utils.substitute_with_UNK(processed_tokens,1)
+print(len(training_data))
+
+word_to_ix = {}
+ix_to_word = {}
+tag_to_ix = {}
+ix_to_tag = {}
+for sent in training_data:
+	for word in sent:
+		if word not in word_to_ix:
+			word_to_ix[word] = len(word_to_ix)
+			ix_to_word[word_to_ix[word]] = word
+for tag in tags:
+	if tag not in tag_to_ix:
+		tag_to_ix[tag] = len(tag_to_ix)
+		ix_to_tag[tag_to_ix[tag]] = tag
 
 
 
@@ -208,6 +230,7 @@ class MIMCT(nn.Module):
         
         
         #create LSTM.
+        self.word_embeddings = nn.Embedding(input_channel, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.hidden2tag = nn.Linear(hidden_dim,3)
         self.dropout = nn.Dropout(p=0.20)
@@ -218,7 +241,8 @@ class MIMCT(nn.Module):
     def forward(self,x):
         cnn_output = self.CNN_Layers(x)
       #  y = self.LSTM_Layers(x)
-        lstm_out, _ = self.lstm(x)
+        embeds = self.word_embeddings(x)
+        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
         lstm_out= self.dropout(lstm_out)
         tag_space = self.hidden2tag(lstm_out.view(lstm_out.size(1), -1))
         lstm_output = F.log_softmax(tag_space, dim=1)
@@ -239,9 +263,9 @@ class MIMCT(nn.Module):
 
 #try with output channel 1 as well.
 batch_size = 1
-input_channel = 16 #vocab size
+input_channel = len(word_to_ix) #vocab size
 embedding_dim = 200 
-output_channel = 16 #vocab size
+output_channel = len(word_to_ix)
 kernel_size = [20,15,10]
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
