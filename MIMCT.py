@@ -233,15 +233,15 @@ class MIMCT(nn.Module):
         X = self.linear(X.view(X.size(2), -1))
         X = self.softmax(X)
         print(X)
-        return x
+        return X
 
-relu = nn.ReLU()
+
 
 #try with output channel 1 as well.
 batch_size = 1
-input_channel = 16
-embedding_dim = 200
-output_channel = 16
+input_channel = 16 #vocab size
+embedding_dim = 200 
+output_channel = 16 #vocab size
 kernel_size = [20,15,10]
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
@@ -254,12 +254,16 @@ dropout = 0.25,
 #recurrent_dropout = 0.3
 
 model = MIMCT(input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
-
+loss_function = nn.NLLLoss()
 #Adam Optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.01)
 input1 = torch.randn(batch_size,input_channel,embedding_dim)
+target = torch.tensor([1])
 output = model(input1)
-#create the loss cretirion and training loops
+loss = loss_function(output,target)
+loss.backward()
+optimizer.step()
+ #create the loss cretirion and training loops
 
 
 input1.size()
