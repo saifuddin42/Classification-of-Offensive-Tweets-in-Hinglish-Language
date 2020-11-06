@@ -203,6 +203,22 @@ def prepare_sequence_tags(seq, to_ix):
     idxs = idxs.view(1)
     return idxs
 
+def sentence_to_padded_sentence(sentence,word_to_ix):
+    
+    # map sentences to vocab
+    sentence =  [[word_to_ix[word] for word in sent] for sent in sentence]
+    # sentence now looks like:  
+    # [[1, 2, 3, 4, 5, 6, 7], [8, 8], [7, 9]]
+    sentence_lengths = [len(sent) for sent in sentence]
+    pad_token = word_to_ix['<PAD>']
+    longest_sent = max(sentence_lengths)
+    batch_size = len(sentence)
+    padded_sentence = np.ones((batch_size, longest_sent)) * pad_token
+    for i, x_len in enumerate(sentence_lengths):
+        sequence = sentence[i]
+        padded_sentence[i, 0:x_len] = sequence[:x_len]
+  
+    return padded_sentence
 
 
 training_data = utils.substitute_with_UNK(processed_tokens,1)
@@ -212,6 +228,7 @@ word_to_ix = {}
 ix_to_word = {}
 tag_to_ix = {}
 ix_to_tag = {}
+word_to_ix = {"<PAD>":0}
 for sent in training_data:
 	for word in sent:
 		if word not in word_to_ix:
@@ -222,7 +239,7 @@ for tag in tags:
 		tag_to_ix[tag] = len(tag_to_ix)
 		ix_to_tag[tag_to_ix[tag]] = tag
 
-
+len(padded_sentence[0]) = sentence_to_padded_sentence(training_data, word_to_ix)
 
 class MIMCT(nn.Module):   
     def __init__(self,input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
@@ -247,7 +264,7 @@ class MIMCT(nn.Module):
         self.softmax = nn.Softmax()
         self.sigmoid = nn.Sigmoid()
         self.maxpool = nn.MaxPool1d(kernel_size=3, stride=1)
-        self.linear = nn.Linear(17,3)
+        self.linear = nn.Linear(592,3)
     def forward(self,x,y):
         cnn_output = self.CNN_Layers(y)
       #  y = self.LSTM_Layers(x)
@@ -275,10 +292,10 @@ class MIMCT(nn.Module):
     
     
 batch_size = 1
-input_channel = 10 #vocab size
+input_channel = 592 #vocab size
 vocab_size = len(word_to_ix) 
 embedding_dim = 200 
-output_channel = 10
+output_channel = 592
 kernel_size = [20,15,10]
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
@@ -294,22 +311,23 @@ model = MIMCT(input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,k
 loss_function = nn.CrossEntropyLoss()
 #Adam Optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.001)
+training_data = padded_sentence
 
-sentence = training_data[0]
-targets = tags[1]
-for epoch in range(1000):  # running for 20 epoch
+for epoch in range(10):  # running for 20 epoch
     print(f"Starting epoch {epoch}...")
     #for sentence in training_data:
-    model.zero_grad()
-    sentence_in = prepare_sequence(sentence, word_to_ix)
-    targets = prepare_sequence_tags(targets, tag_to_ix)
+    for index,sentence in enumerate(training_data):
+        model.zero_grad()
+        targets = tag[index]
+        sentence_in = prepare_sequence(sentence, word_to_ix)
+        targets = prepare_sequence_tags(targets, tag_to_ix)
 
-    tag_scores = model(sentence_in,input1)
+        tag_scores = model(sentence_in,input1)
 
-    loss = loss_function(tag_scores, targets)
-    print(loss)
-    loss.backward()
-    optimizer.step()
+        loss = loss_function(tag_scores, targets)
+        print(loss)
+        loss.backward()
+        optimizer.step()
 print(tag_scores)
 
 
