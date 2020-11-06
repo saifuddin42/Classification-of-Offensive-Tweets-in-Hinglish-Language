@@ -197,6 +197,14 @@ def prepare_sequence(seq, to_ix):
 	idxs = [to_ix[w] for w in seq]
 	return torch.tensor(idxs, dtype=torch.long)
 
+def prepare_sequence_tags(seq, to_ix):
+    idxs = to_ix[seq]
+    idxs = torch.tensor(idxs, dtype=torch.long)
+    idxs = idxs.view(1)
+    return idxs
+
+
+
 training_data = utils.substitute_with_UNK(processed_tokens,1)
 print(len(training_data))
 
@@ -217,43 +225,43 @@ for tag in tags:
 
 
 class MIMCT(nn.Module):   
-    def __init__(self,input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
+    def __init__(self,input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
         super(MIMCT, self).__init__()
         self.CNN_Layers = nn.Sequential( 
             nn.Conv1d(input_channel, output_channel,kernel_size[0], stride=1),
             nn.Conv1d(input_channel, output_channel, kernel_size[1], stride=1),
             nn.Conv1d(input_channel, output_channel, kernel_size[2], stride=1),
             nn.Flatten(),nn.Dropout(p=0.25),
-            nn.Linear(feature_linear, 3),
+            nn.Linear(feature_linear, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3),
             nn.Softmax()
             )
         
         
         #create LSTM.
-        self.word_embeddings = nn.Embedding(input_channel, embedding_dim)
+        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.hidden2tag = nn.Linear(hidden_dim,3)
         self.dropout = nn.Dropout(p=0.20)
         self.softmax = nn.Softmax()
-        
-        self.maxpool = nn.MaxPool1d(kernel_size=3, stride=2)
-        self.linear = nn.Linear(input_channel+1,3)
-    def forward(self,x):
-        cnn_output = self.CNN_Layers(x)
+        self.sigmoid = nn.Sigmoid()
+        self.maxpool = nn.MaxPool1d(kernel_size=3, stride=1)
+        self.linear = nn.Linear(17,3)
+    def forward(self,x,y):
+        cnn_output = self.CNN_Layers(y)
       #  y = self.LSTM_Layers(x)
         embeds = self.word_embeddings(x)
-        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
+        lstm_out, _ = self.lstm(embeds.view(len(x), 1, -1))
         lstm_out= self.dropout(lstm_out)
-        tag_space = self.hidden2tag(lstm_out.view(lstm_out.size(1), -1))
-        lstm_output = F.log_softmax(tag_space, dim=1)
+        tag_space = self.hidden2tag(lstm_out.view(len(x), -1))
+        lstm_output = self.sigmoid(tag_space)
         #concat the outputs the compile layer with categorical cross-entropy the loss function,
         lstm_output = lstm_output.view(lstm_output.size(0),-1)
         cnn_output = cnn_output.view(cnn_output.size(0),-1)
-        
         X = torch.cat((lstm_output,cnn_output))
         X = X.view(1,X.size(0),X.size(1))
         X = self.maxpool(X)
-        
         X = self.linear(X.view(X.size(2), -1))
         X = self.softmax(X)
         print(X)
@@ -262,10 +270,15 @@ class MIMCT(nn.Module):
 
 
 #try with output channel 1 as well.
+        
+    
+    
+    
 batch_size = 1
-input_channel = len(word_to_ix) #vocab size
+input_channel = 10 #vocab size
+vocab_size = len(word_to_ix) 
 embedding_dim = 200 
-output_channel = len(word_to_ix)
+output_channel = 10
 kernel_size = [20,15,10]
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
@@ -277,13 +290,36 @@ hidden_dim = 128
 dropout = 0.25, 
 #recurrent_dropout = 0.3
 
-model = MIMCT(input_channel,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
-loss_function = nn.NLLLoss()
+model = MIMCT(input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
+loss_function = nn.CrossEntropyLoss()
 #Adam Optimizer
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+sentence = training_data[0]
+targets = tags[1]
+for epoch in range(1000):  # running for 20 epoch
+    print(f"Starting epoch {epoch}...")
+    #for sentence in training_data:
+    model.zero_grad()
+    sentence_in = prepare_sequence(sentence, word_to_ix)
+    targets = prepare_sequence_tags(targets, tag_to_ix)
+
+    tag_scores = model(sentence_in,input1)
+
+    loss = loss_function(tag_scores, targets)
+    print(loss)
+    loss.backward()
+    optimizer.step()
+print(tag_scores)
+
+
+outputs = [int(np.argmax(ts)) for ts in tag_scores.detach().numpy()]
+
 input1 = torch.randn(batch_size,input_channel,embedding_dim)
 target = torch.tensor([1])
+
 output = model(input1)
+
 loss = loss_function(output,target)
 loss.backward()
 optimizer.step()
@@ -295,6 +331,20 @@ input1 = input1.view(1,input1.size(0),input1.size(1))
 
 
 
+with torch.no_grad():
+	# this will be the file to write the outputs
+	with open("mymodel_1.2_output.txt", 'w',encoding='UTF-8') as op:
+		for instance in test_data:
+			# Convert the test sentence into a word ID tensor
+			inputs = prepare_sequence(sentence, word_to_ix)
+			# Forward pass
+			tag_scores = model(inputs)
+			# Find the tag with the highest probability in each position
+			outputs = [int(np.argmax(ts)) for ts in tag_scores]
+			# Prepare the output to be written in the same format as the test file (word|tag)
+			formatted_output = ' '.join([f"{word}|{ix_to_tag[tag_id]}" for word,tag_id in zip(instance[0],outputs)])
+			# Write the output
+			op.write(formatted_output + '\n')
 
 
 
@@ -407,3 +457,9 @@ test_input = input1
 output = m(test_input)
 nn.flatten
 '''
+
+
+x = torch.rand(4,3)
+y.size() = torch.squeeze(x,1)
+sig_out=x.view(1, -1)
+sig_out=sig_out[:, -1]
