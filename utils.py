@@ -52,22 +52,17 @@ def substitute_with_UNK_for_TEST(test_data,word_to_ix):
     tag_to_ix1 = {}
     ix_to_tag1 = {}
     # converting the words to UNK which are not in vocabulory
-    for sent1, tags1 in test_data:
+    for sent1 in test_data:
 	    for word1 in sent1:
 		    if word1 not in word_to_ix1:
                 
 			    word_to_ix1[word1] = len(word_to_ix1)
 			    ix_to_word1[word_to_ix1[word1]] = word1
-	    for tag1 in tags1:
-		    if tag1 not in tag_to_ix1:
-			    tag_to_ix1[tag1] = len(tag_to_ix1)
-			    ix_to_tag1[tag_to_ix1[tag1]] = tag1
 
     Tlist=list(test_data)
     for r in range(len(test_data)):
         for j in range(len(test_data[r])):
-            for k in range (len(test_data[r][j])):
-                if (test_data[r][j][k] not in word_to_ix) :
-                    if(test_data[r][j][k] in word_to_ix1):
-                        Tlist[r][j][k] = "UNK"
+                if (test_data[r][j] not in word_to_ix) :
+                    if(test_data[r][j] in word_to_ix1):
+                        Tlist[r][j] = "UNK"
     return (test_data)

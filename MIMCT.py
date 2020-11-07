@@ -38,8 +38,9 @@ def remove_emoji(string):
 
 
 
-f = "english/agr_en_train.csv"
-
+f = "english/agr_en_dev.csv"
+test_f = "agr_en_fb_test.csv"
+f = test_f
 # preprocessing english tweets.
 #ingesting english csv file
 df = pd.read_csv(f,names = ['source','comment','annotation'],encoding='UTF-8')
@@ -220,8 +221,8 @@ def sentence_to_padded_sentence(sentence,word_to_ix):
   
     return padded_sentence
 
-
 training_data = utils.substitute_with_UNK(processed_tokens,1)
+testing_data = utils.substitute_with_UNK_for_TEST(processed_tokens,word_to_ix)
 print(len(training_data))
 
 word_to_ix = {}
@@ -239,10 +240,19 @@ for tag in tags:
 		tag_to_ix[tag] = len(tag_to_ix)
 		ix_to_tag[tag_to_ix[tag]] = tag
 
-len(padded_sentence[0]) = sentence_to_padded_sentence(training_data, word_to_ix)
+sentence= []
+for sent in training_data:
+     sentence.append(sent[:50])
+     
+test_sentence= []
+for sent in testing_data:
+     test_sentence.append(sent[:50])
+
+padded_sentence = sentence_to_padded_sentence(sentence, word_to_ix)
+test_padded_sentence = sentence_to_padded_sentence(test_sentence, word_to_ix)
 
 class MIMCT(nn.Module):   
-    def __init__(self,input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
+    def __init__(self,input_channel,vocab_size,word_to_ix,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear):
         super(MIMCT, self).__init__()
         self.CNN_Layers = nn.Sequential( 
             nn.Conv1d(input_channel, output_channel,kernel_size[0], stride=1),
@@ -264,14 +274,18 @@ class MIMCT(nn.Module):
         self.softmax = nn.Softmax()
         self.sigmoid = nn.Sigmoid()
         self.maxpool = nn.MaxPool1d(kernel_size=3, stride=1)
-        self.linear = nn.Linear(592,3)
-    def forward(self,x,y):
-        cnn_output = self.CNN_Layers(y)
+        self.linear = nn.Linear(50+1,3)
+    def forward(self,x):
       #  y = self.LSTM_Layers(x)
         embeds = self.word_embeddings(x)
+        
+        embeds_cnn = embeds.view(1,embeds.size(0),embeds.size(1))
+        cnn_output = self.CNN_Layers(embeds_cnn)
+        
         lstm_out, _ = self.lstm(embeds.view(len(x), 1, -1))
         lstm_out= self.dropout(lstm_out)
         tag_space = self.hidden2tag(lstm_out.view(len(x), -1))
+        
         lstm_output = self.sigmoid(tag_space)
         #concat the outputs the compile layer with categorical cross-entropy the loss function,
         lstm_output = lstm_output.view(lstm_output.size(0),-1)
@@ -292,10 +306,10 @@ class MIMCT(nn.Module):
     
     
 batch_size = 1
-input_channel = 592 #vocab size
+input_channel = 50 #vocab size
 vocab_size = len(word_to_ix) 
 embedding_dim = 200 
-output_channel = 592
+output_channel = 50
 kernel_size = [20,15,10]
 Feature_layer1 = embedding_dim - kernel_size[0] + 1
 Feature_layer2 = Feature_layer1 - kernel_size[1] + 1
@@ -307,62 +321,60 @@ hidden_dim = 128
 dropout = 0.25, 
 #recurrent_dropout = 0.3
 
-model = MIMCT(input_channel,vocab_size,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
+model = MIMCT(input_channel,vocab_size,word_to_ix,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
 loss_function = nn.CrossEntropyLoss()
 #Adam Optimizer
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+original_data = training_data
 training_data = padded_sentence
+sentence1 = training_data[0]
 
+print(len(tags))
 for epoch in range(10):  # running for 20 epoch
     print(f"Starting epoch {epoch}...")
     #for sentence in training_data:
     for index,sentence in enumerate(training_data):
         model.zero_grad()
-        targets = tag[index]
-        sentence_in = prepare_sequence(sentence, word_to_ix)
+        targets = tags[index]
+        sentence_in=torch.tensor(sentence, dtype=torch.long)
+        
         targets = prepare_sequence_tags(targets, tag_to_ix)
 
-        tag_scores = model(sentence_in,input1)
-
+        tag_scores = model(sentence_in)
+ 
         loss = loss_function(tag_scores, targets)
         print(loss)
         loss.backward()
         optimizer.step()
-print(tag_scores)
-
-
-outputs = [int(np.argmax(ts)) for ts in tag_scores.detach().numpy()]
-
-input1 = torch.randn(batch_size,input_channel,embedding_dim)
-target = torch.tensor([1])
-
-output = model(input1)
-
-loss = loss_function(output,target)
-loss.backward()
-optimizer.step()
- #create the loss cretirion and training loops
-
-
-input1.size()
-input1 = input1.view(1,input1.size(0),input1.size(1))
 
 
 
+
+
+
+
+
+
+
+testing_data = test_padded_sentence
 with torch.no_grad():
 	# this will be the file to write the outputs
-	with open("mymodel_1.2_output.txt", 'w',encoding='UTF-8') as op:
-		for instance in test_data:
+    with open("mymodel_output.txt", 'w',encoding='UTF-8') as op:
+        for instance in testing_data:
 			# Convert the test sentence into a word ID tensor
-			inputs = prepare_sequence(sentence, word_to_ix)
-			# Forward pass
-			tag_scores = model(inputs)
+            test_sentence_in=torch.tensor(instance, dtype=torch.long)
+
+            tag_scores = model(test_sentence_in)
+	
 			# Find the tag with the highest probability in each position
-			outputs = [int(np.argmax(ts)) for ts in tag_scores]
+            outputs = [int(np.argmax(ts)) for ts in tag_scores.detach().numpy()]
 			# Prepare the output to be written in the same format as the test file (word|tag)
-			formatted_output = ' '.join([f"{word}|{ix_to_tag[tag_id]}" for word,tag_id in zip(instance[0],outputs)])
+            formatted_output = ix_to_tag[outputs[0]]
 			# Write the output
-			op.write(formatted_output + '\n')
+            op.write(formatted_output + '\n')
+            
+        print(i)
+        print(len(test_data))
 
 
 
@@ -481,3 +493,20 @@ x = torch.rand(4,3)
 y.size() = torch.squeeze(x,1)
 sig_out=x.view(1, -1)
 sig_out=sig_out[:, -1]
+
+
+original_data
+a = []
+for sent in sentence:
+    a.append(len(sent))
+
+
+import matplotlib.pyplot as plt
+
+plt.hist(a, bins =30)
+plt.show()
+
+i =0 
+for value in a:
+    if(int(value) < 50):
+        i=i+1    
