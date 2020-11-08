@@ -38,9 +38,9 @@ def remove_emoji(string):
 
 
 
-f = "english/agr_en_dev.csv"
-test_f = "agr_en_fb_test.csv"
-f = test_f
+f = "english/agr_en_train.csv"
+#test_f = "agr_en_fb_test.csv"
+#f = test_f
 # preprocessing english tweets.
 #ingesting english csv file
 df = pd.read_csv(f,names = ['source','comment','annotation'],encoding='UTF-8')
@@ -193,6 +193,7 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
+import torch.nn.functional as F
 
 def prepare_sequence(seq, to_ix):
 	idxs = [to_ix[w] for w in seq]
@@ -286,7 +287,7 @@ class MIMCT(nn.Module):
         lstm_out= self.dropout(lstm_out)
         tag_space = self.hidden2tag(lstm_out.view(len(x), -1))
         
-        lstm_output = self.sigmoid(tag_space)
+        lstm_output = self.softmax(tag_space)
         #concat the outputs the compile layer with categorical cross-entropy the loss function,
         lstm_output = lstm_output.view(lstm_output.size(0),-1)
         cnn_output = cnn_output.view(cnn_output.size(0),-1)
@@ -324,13 +325,13 @@ dropout = 0.25,
 model = MIMCT(input_channel,vocab_size,word_to_ix,output_channel,embedding_dim,hidden_dim,kernel_size,feature_linear)
 loss_function = nn.CrossEntropyLoss()
 #Adam Optimizer
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 original_data = training_data
 training_data = padded_sentence
 sentence1 = training_data[0]
 
 print(len(tags))
-for epoch in range(10):  # running for 20 epoch
+for epoch in range(5):  # running for 20 epoch
     print(f"Starting epoch {epoch}...")
     #for sentence in training_data:
     for index,sentence in enumerate(training_data):
@@ -346,7 +347,7 @@ for epoch in range(10):  # running for 20 epoch
         print(loss)
         loss.backward()
         optimizer.step()
-
+    print(epoch)
 
 
 
