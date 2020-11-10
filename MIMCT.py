@@ -39,8 +39,7 @@ def remove_emoji(string):
 
 
 f = "english/agr_en_train.csv"
-#test_f = "agr_en_fb_test.csv"
-#f = test_f
+ 
 # preprocessing english tweets.
 #ingesting english csv file
 df = pd.read_csv(f,names = ['source','comment','annotation'],encoding='UTF-8')
@@ -222,9 +221,6 @@ def sentence_to_padded_sentence(sentence,word_to_ix):
   
     return padded_sentence
 
-training_data = utils.substitute_with_UNK(processed_tokens,1)
-testing_data = utils.substitute_with_UNK_for_TEST(processed_tokens,word_to_ix)
-print(len(training_data))
 
 word_to_ix = {}
 ix_to_word = {}
@@ -248,6 +244,12 @@ for sent in training_data:
 test_sentence= []
 for sent in testing_data:
      test_sentence.append(sent[:50])
+
+
+training_data = utils.substitute_with_UNK(processed_tokens,1)
+testing_data = utils.substitute_with_UNK_for_TEST(processed_tokens,word_to_ix)
+print(len(training_data))
+
 
 padded_sentence = sentence_to_padded_sentence(sentence, word_to_ix)
 test_padded_sentence = sentence_to_padded_sentence(test_sentence, word_to_ix)
@@ -344,12 +346,14 @@ for epoch in range(5):  # running for 20 epoch
         tag_scores = model(sentence_in)
  
         loss = loss_function(tag_scores, targets)
-        print(loss)
+        print(loss) 
         loss.backward()
         optimizer.step()
     print(epoch)
 
-
+with open("mymodel_output_2.4.txt", 'w',encoding='UTF-8') as op:
+    formatted_output = 'Helo Wrold'
+    op.append(formatted_output)
 
 
 
