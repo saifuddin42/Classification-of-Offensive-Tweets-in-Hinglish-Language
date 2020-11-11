@@ -351,9 +351,9 @@ for epoch in range(5):  # running for 20 epoch
         optimizer.step()
     print(epoch)
 
-with open("mymodel_output_2.4.txt", 'w',encoding='UTF-8') as op:
+with open("mymodel_output_2.4.txt", 'a',encoding='UTF-8') as op:
     formatted_output = 'Helo Wrold'
-    op.append(formatted_output)
+    op.write(formatted_output + '\n')
 
 
 
@@ -492,7 +492,10 @@ test_input = input1
 output = m(test_input)
 nn.flatten
 '''
-
+import pandas as pd
+import numpy as np
+x = pd.read_csv("B:\CS 695\Assignment3\Classification-of-Offensive-Tweets-in-Hinglish-Language/hindi_tokens_translated_to_English_list.csv",sep='/t',encoding="UTF-8")
+ = np.asarray(x)
 
 x = torch.rand(4,3)
 y.size() = torch.squeeze(x,1)
