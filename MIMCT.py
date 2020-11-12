@@ -70,7 +70,7 @@ for comment in comments:
 #-----------------For hinglish dataset
 
 
-Hindi_text  = "hindi/agr_hi_dev.csv"
+Hindi_text  = "agr_hi_fb_test.csv"
 df1 = pd.read_csv(Hindi_text,names = ['source','comment','annotation'],encoding='UTF-8')
 df1['comment'] = df1.comment.str.strip()   # removing spaces
 hindi_comments = np.asarray(df1['comment'])    # dividing the dataframe into comments and tags and converting to array
@@ -79,10 +79,11 @@ print((hindi_comments[1]))
 processed_Hindi_tokens = []
 for comment in hindi_comments:
 #    comment = "Also see ....hw ur RSS activist caught in Burkha .... throwing beef in d holy temples...https://www.google.co.in/amp/www.india.com/news/india/burkha-clad-rss-activist-caught-throwing-beef-at-temple-pictures-go-viral-on-facebook-593154/amp/,NAGfacebook_corpus_msr_403402,On the death of 2 jawans in LOC CROSS FIRING"
-    comment = comment.lower()   #lower casing each tweets
-    Digit_REMOVAL = re.sub(r'[0-9]+', '',comment) #removal of numbers 
+#    comment = comment.lower()   #lower casing each tweets
+    Digit_REMOVAL = re.sub(r'[0-9]+', '',str(comment)) #removal of numbers 
     URL_REMOVAL = re.sub(r"http\S+", "", Digit_REMOVAL) # removal of URLS
     Emoji_removal = remove_emoji(URL_REMOVAL)
+    Emoji_removal = Emoji_removal.lower()
     if (isEnglish(Emoji_removal) == True):
         Emoji_removal = re.sub(r'[^\w\s]','',Emoji_removal)# removal of punctuation and tokenizing
     processed_Hindi_tokens.append(word_tokenize(Emoji_removal))
@@ -152,7 +153,7 @@ processed_Hindi_tokens[1]
 
 #------------------Translation of hindi text back to english-------
 
-Hindi_dict = "Hindi_English_Dict.csv"
+Hindi_dict = "Hindi_English_dict.csv"
 H_dict = pd.read_csv(Hindi_dict,names = ['Hindi','English'],encoding='UTF-8')
 
 HE_dict_F = "HE_dictionary_functions.csv"
